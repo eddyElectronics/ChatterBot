@@ -1,6 +1,7 @@
 from .base_case import ChatBotTestCase
 from chatterbot.conversation import Statement
 from chatterbot.utils.graphs import find_sequence_in_tree
+from chatterbot.utils.graphs import get_all_ordered_subsets
 from chatterbot.utils.graphs import StatementGraph
 
 
@@ -28,6 +29,20 @@ class GraphTestCase(ChatBotTestCase):
 
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0].text, 'I am good, how about you?')
+
+
+class SequenceMatchingTestCase(ChatBotTestCase):
+
+    def test_get_all_ordered_subsets(self):
+        subsets = list(get_all_ordered_subsets([1, 2, 3]))
+
+        self.assertEqual(len(subsets), 6)
+        self.assertIn([1], subsets)
+        self.assertIn([2], subsets)
+        self.assertIn([3], subsets)
+        self.assertIn([1, 2], subsets)
+        self.assertIn([2, 3], subsets)
+        self.assertIn([1, 2, 3], subsets)
 
 
 class SubtreeMatchingTestCase(ChatBotTestCase):

@@ -15,6 +15,15 @@ class StatementGraph(object):
         return self.storage.find(statement.text).in_response_to
 
 
+def get_all_ordered_subsets(items):
+    """
+    Return a list of all ordered subsets of the input list.
+    """
+    from itertools import combinations
+    for i, j in combinations(range(len(items) + 1), 2):
+        yield items[i:j]
+
+
 def list_close_matches_for_statements(statements, all_known_statements, max_close_entries=10):
     """
     Takes a list of statements and returns a dictionary where each key is
