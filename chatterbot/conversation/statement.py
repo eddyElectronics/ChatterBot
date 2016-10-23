@@ -25,6 +25,9 @@ class Statement(object):
     def __hash__(self):
         return hash(self.text)
 
+    def __hash__(self):
+        return hash(self.text)
+
     def __eq__(self, other):
         if not other:
             return False

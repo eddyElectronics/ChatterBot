@@ -30,6 +30,58 @@ class GraphTestCase(ChatBotTestCase):
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0].text, 'I am good, how about you?')
 
+    def test_search_children_for_best_match_exact(self):
+        conversations = [
+            [
+                Statement('Hi, how are you?'),
+                Statement('I am good, how about you?'),
+                Statement('I am also good.')
+            ],
+            [
+                Statement('Hi, how are you?'),
+                Statement('I am great!'),
+                Statement('That is good to hear.')
+            ]
+        ]
+
+        for conversation in conversations:
+            self.chatbot.train(list(statement.text for statement in conversation))
+
+        search_node = Statement('I am great!')
+        root_nodes = self.graph.get_parent_nodes(search_node)
+
+        value, best_match = self.graph.search_children_for_best_match(search_node, root_nodes)
+
+        self.assertEqual(best_match, search_node)
+        self.assertEqual(value, 100)
+
+    def test_check_for_matching_sequence(self):
+        pass
+
+    def test_list_close_matches_for_statements(self):
+        statements = [
+            Statement('Close'),
+            Statement('Close.'),
+            Statement('Close..'),
+            Statement('Hello'),
+            Statement('Hello!'),
+            Statement('Hello!!!')
+        ]
+
+        for statement in statements:
+            self.graph.storage.update(statement)
+
+        results = self.graph.list_close_matches_for_statements([
+            Statement('Close'),
+            Statement('Hello')
+        ], max_results=2)
+
+        self.assertEqual(len(results), 4)
+        self.assertIn('Close', results[1])
+        self.assertIn('Close.', results[0])
+        self.assertIn('Hello', results[3])
+        self.assertIn('Hello!', results[2])
+
 
 class SequenceMatchingTestCase(ChatBotTestCase):
 
@@ -65,7 +117,12 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
 
         found = find_sequence_in_tree(self.chatbot.storage, sequence)
 
+        print('found:', found)
+
         self.assertEqual(len(found), len(sequence))
+        self.assertEqual(found[0], sequence[0])
+        self.assertEqual(found[1], sequence[1])
+        self.assertEqual(found[2], sequence[2])
 
     def test_no_match(self):
         pass

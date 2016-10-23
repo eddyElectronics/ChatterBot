@@ -14,6 +14,75 @@ class StatementGraph(object):
     def get_parent_nodes(self, statement):
         return self.storage.find(statement.text).in_response_to
 
+    def search_children_for_best_match(self, search_node, root_nodes, max_depth=2):
+        """
+        Search for a best match down to a maximum depth.
+        """
+        nodes = set(root_nodes)
+
+        # Get all nodes down to the maximum depth
+        while max_depth >= 0:
+            max_depth -= 1
+            for node in nodes.copy():
+                children = self.get_child_nodes(node)
+                nodes.update(children)
+
+        return get_max_comparison(search_node, nodes)
+
+    def check_for_matching_sequence(self, start_statement, conversation):
+        """
+        Takes a start statement (the statement for which some number of child nodes will be checked),
+        and a conversation (a list of statements). Returns a sum of the best matching
+        closest statement comparasons within an alloted search distance from each consecutive
+        response.
+        """
+        start_statement_children = self.get_child_nodes(start_statement)
+
+        total_max_value = 0
+        sequence = []
+
+        for statement in conversation:
+            max_value, max_node = self.search_children_for_best_match(statement, start_statement_children)
+            total_max_value += max_value
+            sequence.append(max_node)
+
+        return total_max_value, sequence
+
+    def list_close_matches_for_statements(self, statements, max_results=10):
+        """
+        Takes a list of statements and returns a dictionary where each key is
+        the index of the statement in the list, and each value is a list of tuples.
+        The first element of each tuple is the closeness that the statement matched,
+        and the second value of the tuple is the statement that matched.
+        The tuples in the list represent the top selection of most closely matching
+        statements.
+        """
+        close_entries = []
+        entries = {}
+
+        for known_statement in self.storage.filter():
+            for index, statement in enumerate(statements):
+
+                if index not in entries:
+                    entries[index] = []
+
+                closeness = statement.compare_to(known_statement)
+                entries[index].append((closeness, known_statement, ))
+
+                if len(entries[index]) > max_results:
+
+                    # Sort the list by the closeness value
+                    entries[index].sort(key=lambda tup: tup[0])
+
+                    # Remove the least-close vlaue from the list
+                    entries[index].pop(0)
+
+        # Add the top set of close entries to the list of candidates
+        for index in range(0, len(entries)):
+            close_entries += entries[index]
+
+        return close_entries
+
 
 def get_all_ordered_subsets(items):
     """
@@ -24,38 +93,11 @@ def get_all_ordered_subsets(items):
         yield items[i:j]
 
 
-def list_close_matches_for_statements(statements, all_known_statements, max_close_entries=10):
-    """
-    Takes a list of statements and returns a dictionary where each key is
-    the index of the statement in the list, and each value is a list of tuples.
-    The first element of each tuple is the closeness that the statement matched,
-    and the second value of the tuple is the statement that matched.
-    The tuples in the list represent the top selection of most closely matching
-    statements.
-    """
-    close_entries = {}
-
-    for known_statement in all_known_statements:
-        for index, statement in enumerate(statements):
-            closeness = known_statement.compare_to(statement)
-
-            if index not in close_entries:
-                close_entries[index] = []
-
-            close_entries[index].append((closeness, known_statement))
-
-            if len(close_entries[index]) >= max_close_entries:
-
-                # Sort the list by the closeness value
-                close_entries[index].sort(key=lambda tup: tup[0])
-
-                # Remove the least-close vlaue from the list
-                del close_entries[index][0]
-
-    return close_entries
-
-
 def get_max_comparison(match_statement, statements):
+    """
+    Given a statement and a list of statements, return the statement from
+    the list that most closely matches the given statement.
+    """
     max_value = -1
     max_statement = None
 
@@ -69,80 +111,6 @@ def get_max_comparison(match_statement, statements):
     return max_value, max_statement
 
 
-def recursive_parents_best_match(graph, start_statement, search_statement, max_search_distance):
-    statements = set([start_statement])
-    best_match = None
-    best_match_comparison = -1
-
-    while max_search_distance > 0:
-        max_search_distance -= 1
-        _statements = statements.copy()
-        for statement in _statements:
-            children = graph.get_parent_nodes(statement)
-            statements.update(children)
-
-    for statement in statements:
-        comparison = search_statement.compare_to(statement)
-
-        if comparison > best_match_comparison:
-            best_match_comparison = comparison
-            best_match = statement
-
-    return best_match_comparison, best_match
-
-def recursive_children_best_match(graph, start_statement, search_statement, max_search_distance):
-    """
-    Return the statement that has the greatest closeness
-    to one of the next statements in the search sequence
-    """
-
-    statements = set([start_statement])
-    best_match = None
-    best_match_comparison = -1
-
-    while max_search_distance > 0:
-        max_search_distance -= 1
-        _statements = statements.copy()
-        for statement in _statements:
-            children = graph.get_child_nodes(statement)
-            statements.update(children)
-
-    for statement in statements:
-        comparison = search_statement.compare_to(statement)
-
-        if comparison > best_match_comparison:
-            best_match_comparison = comparison
-            best_match = statement
-
-    return best_match_comparison, best_match
-
-
-def backtrack(graph, statement, conversation, max_search_distance):
-
-    if len(conversation) == 1:
-        max_comparison_value, max_comparison = recursive_parents_best_match(
-            graph, statement, conversation[0], max_search_distance
-        )
-
-        return max_comparison_value, [max_comparison]
-
-    return backtrack(graph, statement, conversation[1:], max_search_distance - 1)
-
-
-def foretrack(graph, statement, conversation, max_search_distance):
-
-    if len(conversation) == 1:
-
-        # Check ahead a depth of max_search_distance nodes to see if a closer match to the statement exists
-        max_comparison_value, max_comparison = recursive_children_best_match(
-            graph, statement, conversation[0], max_search_distance
-        )
-
-        return max_comparison_value, [max_comparison]
-
-    return foretrack(graph, statement, conversation[1:], max_search_distance - 1)
-
-
 def find_sequence_in_tree(storage, conversation, max_depth=100, max_search_distance=1):
     """
     Method to find the closest match to a sequence of strings in
@@ -154,45 +122,27 @@ def find_sequence_in_tree(storage, conversation, max_depth=100, max_search_dista
     exist.
     """
     graph = StatementGraph(storage)
-    all_known_statements = storage.filter()
 
     # First, create a list of possible close matches for each statement in the conversation
-    matching_data = list_close_matches_for_statements(conversation, all_known_statements)
+    matching_data = graph.list_close_matches_for_statements(conversation)
 
-    for index, statement in enumerate(conversation):
-        matches = matching_data[index]
+    total_max_value = -1
+    max_sequence = []
 
-        best_count = -1
-        best_match = None
+    #first_statement = conversation.pop(0)
 
-        for match in matches:
+    for match_value, match_statement in matching_data:
 
-            match_value, match_statement = match
+        # Check for a close match to next elements in the conversation
+        value, sequence = graph.check_for_matching_sequence(match_statement, conversation)
 
-            count_ahead = 0
-            count_behind = 0
-            statements_ahead = []
-            statements_behind = []
+        # Create a sum of the closeness of each of the adjacent element's closeness
+        match_sum = match_value + value
 
-            if index != 0:
-                # Forwards-track to check for the highest number of statements that
-                # also have a close match to next elements in the conversation.
-                next_conversation_parts = conversation[-1 * (index - 1):]
-                count_ahead, statements_ahead = foretrack(graph, match_statement, next_conversation_parts, max_search_distance)
+        if match_sum > total_max_value:
+            total_max_value = match_sum
 
-            if index != len(conversation):
-                # Backtrack to check for the highest number of statements that
-                # also have a close match to previous elements in the conversation.
-                previous_conversation_parts = conversation[:index]
-                #count_behind, statements_behind = backtrack(storage, match_statement, previous_conversation_parts, max_search_distance)
+            # Join the lists together to get the origional conversation
+            max_sequence = [match_statement] + max_sequence
 
-            # Create a sum of the closeness of each of the adjacent element's closeness
-            count = count_ahead + count_behind
-
-            if count > best_count:
-                count = best_count
-
-                # Join the lists together to get the origional conversation
-                best_match = statements_behind + [match] + statements_ahead
-
-    return best_match
+    return max_sequence
