@@ -110,9 +110,7 @@ class StatementGraph(object):
 
             if match_sum > total_max_value:
                 total_max_value = match_sum
-
-                # Join the lists together to get the origional conversation
-                max_sequence = [match_statement] + max_sequence
+                max_sequence = sequence
 
         return max_sequence
 
