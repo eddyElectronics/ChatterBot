@@ -29,25 +29,6 @@ class StatementGraph(object):
 
         return get_max_comparison(search_node, nodes)
 
-    def find_closest_matching_sequence(self, start_statement, conversation):
-        """
-        Takes a conversation (a list of statements). Returns a sum of the best matching
-        closest statement comparasons within an alloted search distance from each consecutive
-        response.
-        """
-        total_max_value = 0
-        sequence = [start_statement]
-
-        for statement in conversation:
-            child_nodes = self.get_child_nodes(sequence[-1])
-            if child_nodes:
-                max_value, max_node = self.search_children_for_best_match(statement, child_nodes)
-                current_node = max_node
-                total_max_value += max_value
-                sequence.append(max_node)
-
-        return total_max_value, sequence
-
     def list_close_matches_for_statements(self, statements, max_results=10):
         """
         Takes a list of statements and returns a dictionary where each key is
@@ -83,6 +64,58 @@ class StatementGraph(object):
 
         return close_entries
 
+    def find_closest_matching_sequence(self, start_statement, conversation):
+        """
+        Takes a conversation (a list of statements). Returns a sum of the best matching
+        closest statement comparasons within an alloted search distance from each consecutive
+        response.
+        """
+        total_max_value = 0
+        sequence = [start_statement]
+
+        for statement in conversation:
+            child_nodes = self.get_child_nodes(sequence[-1])
+            if child_nodes:
+                max_value, max_node = self.search_children_for_best_match(statement, child_nodes)
+                current_node = max_node
+                total_max_value += max_value
+                sequence.append(max_node)
+
+        return total_max_value, sequence
+
+    def find_closest_matching_sequence_in_tree(self, conversation, max_depth=100, max_search_distance=1):
+        """
+        Method to find the closest match to a sequence of strings in
+        a tree-like data structure.
+
+        Find the closest match to a sequence S1 l1 S2 l2 S3 l3 ... Sn where each
+        Sx is an element in the list S at an index of x and where l is some number
+        of S-like elements between 0 and max. Allow the case that some Sx may not
+        exist.
+        """
+        # First, create a list of possible close matches for each statement in the conversation
+        # These are candiate root nodes for the closest matching sequence
+        matching_data = self.list_close_matches_for_statements(conversation)
+
+        total_max_value = -1
+        max_sequence = []
+
+        for match_value, match_statement in matching_data:
+
+            # Check for a close match to next elements in the conversation
+            value, sequence = self.find_closest_matching_sequence(match_statement, conversation)
+
+            # Create a sum of the closeness of each of the adjacent element's closeness
+            match_sum = match_value + value
+
+            if match_sum > total_max_value:
+                total_max_value = match_sum
+
+                # Join the lists together to get the origional conversation
+                max_sequence = [match_statement] + max_sequence
+
+        return max_sequence
+
 
 def get_all_ordered_subsets(items):
     """
@@ -109,40 +142,3 @@ def get_max_comparison(match_statement, statements):
             max_statement = statement
 
     return max_value, max_statement
-
-
-def find_sequence_in_tree(storage, conversation, max_depth=100, max_search_distance=1):
-    """
-    Method to find the closest match to a sequence of strings in
-    a tree-like data structure.
-
-    Find the closest match to a sequence S1 l1 S2 l2 S3 l3 ... Sn where each
-    Sx is an element in the list S at an index of x and where l is some number
-    of S-like elements between 0 and max. Allow the case that some Sx may not
-    exist.
-    """
-    graph = StatementGraph(storage)
-
-    # First, create a list of possible close matches for each statement in the conversation
-    matching_data = graph.list_close_matches_for_statements(conversation)
-
-    total_max_value = -1
-    max_sequence = []
-
-    #first_statement = conversation.pop(0)
-
-    for match_value, match_statement in matching_data:
-
-        # Check for a close match to next elements in the conversation
-        value, sequence = graph.find_closest_matching_sequence(match_statement, conversation)
-
-        # Create a sum of the closeness of each of the adjacent element's closeness
-        match_sum = match_value + value
-
-        if match_sum > total_max_value:
-            total_max_value = match_sum
-
-            # Join the lists together to get the origional conversation
-            max_sequence = [match_statement] + max_sequence
-
-    return max_sequence

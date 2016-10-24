@@ -1,7 +1,6 @@
 from .base_case import ChatBotTestCase
+from chatterbot.trainers import ListTrainer
 from chatterbot.conversation import Statement
-from chatterbot.utils.graphs import find_sequence_in_tree
-from chatterbot.utils.graphs import get_all_ordered_subsets
 from chatterbot.utils.graphs import StatementGraph
 
 
@@ -9,7 +8,6 @@ class GraphTestCase(ChatBotTestCase):
 
     def setUp(self):
         super(GraphTestCase, self).setUp()
-        from chatterbot.trainers import ListTrainer
         self.chatbot.set_trainer(ListTrainer)
         self.chatbot.train([
             'Hi, how are you?',
@@ -45,7 +43,7 @@ class GraphTestCase(ChatBotTestCase):
         ]
 
         for conversation in conversations:
-            self.chatbot.train(list(statement.text for statement in conversation))
+            self.chatbot.train(statement.text for statement in conversation)
 
         search_node = Statement('I am great!')
         root_nodes = self.graph.get_parent_nodes(search_node)
@@ -64,14 +62,12 @@ class GraphTestCase(ChatBotTestCase):
         ]
         start_statement = conversation[0]
 
-        self.chatbot.train(list(statement.text for statement in conversation))
+        self.chatbot.train(statement.text for statement in conversation)
 
         total_max_value, sequence = self.graph.find_closest_matching_sequence(
             start_statement,
             conversation
         )
-
-        print(sequence)
 
         self.assertEqual(len(sequence), 3)
         self.assertEqual(conversation[0], sequence[0])
@@ -104,26 +100,12 @@ class GraphTestCase(ChatBotTestCase):
         self.assertIn('Hello!', results[2])
 
 
-class SequenceMatchingTestCase(ChatBotTestCase):
-
-    def test_get_all_ordered_subsets(self):
-        subsets = list(get_all_ordered_subsets([1, 2, 3]))
-
-        self.assertEqual(len(subsets), 6)
-        self.assertIn([1], subsets)
-        self.assertIn([2], subsets)
-        self.assertIn([3], subsets)
-        self.assertIn([1, 2], subsets)
-        self.assertIn([2, 3], subsets)
-        self.assertIn([1, 2, 3], subsets)
-
-
 class SubtreeMatchingTestCase(ChatBotTestCase):
 
     def setUp(self):
         super(SubtreeMatchingTestCase, self).setUp()
-        from chatterbot.trainers import ListTrainer
         self.chatbot.set_trainer(ListTrainer)
+        self.graph = StatementGraph(self.chatbot.storage)
 
     def test_exact_match(self):
         sequence = [
@@ -132,11 +114,9 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
             Statement('I am also good.')
         ]
 
-        self.chatbot.train([
-            sequence[0].text, sequence[1].text, sequence[2].text
-        ])
+        self.chatbot.train(statement.text for statement in sequence)
 
-        found = find_sequence_in_tree(self.chatbot.storage, sequence)
+        found = self.graph.find_closest_matching_sequence_in_tree(sequence)
 
         print('found:', found)
 
@@ -155,4 +135,23 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
         pass
 
     def test_partial_tree_match(self):
+        pass
+
+
+class SequenceMatchingTestCase(ChatBotTestCase):
+
+    def test_get_all_ordered_subsets(self):
+        from chatterbot.utils.graphs import get_all_ordered_subsets
+
+        subsets = list(get_all_ordered_subsets([1, 2, 3]))
+
+        self.assertEqual(len(subsets), 6)
+        self.assertIn([1], subsets)
+        self.assertIn([2], subsets)
+        self.assertIn([3], subsets)
+        self.assertIn([1, 2], subsets)
+        self.assertIn([2, 3], subsets)
+        self.assertIn([1, 2, 3], subsets)
+
+    def test_get_max_comparison(self):
         pass
