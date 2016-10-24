@@ -29,22 +29,22 @@ class StatementGraph(object):
 
         return get_max_comparison(search_node, nodes)
 
-    def check_for_matching_sequence(self, start_statement, conversation):
+    def find_closest_matching_sequence(self, start_statement, conversation):
         """
-        Takes a start statement (the statement for which some number of child nodes will be checked),
-        and a conversation (a list of statements). Returns a sum of the best matching
+        Takes a conversation (a list of statements). Returns a sum of the best matching
         closest statement comparasons within an alloted search distance from each consecutive
         response.
         """
-        start_statement_children = self.get_child_nodes(start_statement)
-
         total_max_value = 0
-        sequence = []
+        sequence = [start_statement]
 
         for statement in conversation:
-            max_value, max_node = self.search_children_for_best_match(statement, start_statement_children)
-            total_max_value += max_value
-            sequence.append(max_node)
+            child_nodes = self.get_child_nodes(sequence[-1])
+            if child_nodes:
+                max_value, max_node = self.search_children_for_best_match(statement, child_nodes)
+                current_node = max_node
+                total_max_value += max_value
+                sequence.append(max_node)
 
         return total_max_value, sequence
 
@@ -134,7 +134,7 @@ def find_sequence_in_tree(storage, conversation, max_depth=100, max_search_dista
     for match_value, match_statement in matching_data:
 
         # Check for a close match to next elements in the conversation
-        value, sequence = graph.check_for_matching_sequence(match_statement, conversation)
+        value, sequence = graph.find_closest_matching_sequence(match_statement, conversation)
 
         # Create a sum of the closeness of each of the adjacent element's closeness
         match_sum = match_value + value

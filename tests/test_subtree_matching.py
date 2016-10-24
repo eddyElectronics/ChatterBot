@@ -55,8 +55,29 @@ class GraphTestCase(ChatBotTestCase):
         self.assertEqual(best_match, search_node)
         self.assertEqual(value, 100)
 
-    def test_check_for_matching_sequence(self):
-        pass
+    def test_find_closest_matching_sequence(self):
+
+        conversation = [
+            Statement('Hi, how are you?'),
+            Statement('I am good, how about you?'),
+            Statement('I am also good.')
+        ]
+        start_statement = conversation[0]
+
+        self.chatbot.train(list(statement.text for statement in conversation))
+
+        total_max_value, sequence = self.graph.find_closest_matching_sequence(
+            start_statement,
+            conversation
+        )
+
+        print(sequence)
+
+        self.assertEqual(len(sequence), 3)
+        self.assertEqual(conversation[0], sequence[0])
+        self.assertEqual(conversation[1], sequence[1])
+        self.assertEqual(conversation[2], sequence[2])
+        self.assertEqual(total_max_value, 104)
 
     def test_list_close_matches_for_statements(self):
         statements = [
