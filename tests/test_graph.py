@@ -113,10 +113,29 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
             Statement('I am good, how about you?'),
             Statement('I am also good.')
         ]
-
         self.chatbot.train(statement.text for statement in sequence)
 
         found = self.graph.find_closest_matching_sequence_in_tree(sequence)
+
+        self.assertEqual(len(found), len(sequence))
+        self.assertEqual(found[0], sequence[0])
+        self.assertEqual(found[1], sequence[1])
+        self.assertEqual(found[2], sequence[2])
+
+    def test_close_match(self):
+        sequence = [
+            Statement('Are you a robot?'),
+            Statement('No, I am not a robot.'),
+            Statement('Darn, I like robots.')
+        ]
+        close_sequence = [
+            Statement('Are thou a robot?'),
+            Statement('I am not a robot.'),
+            Statement('Okay, I like robots.')
+        ]
+        self.chatbot.train(statement.text for statement in sequence)
+
+        found = self.graph.find_closest_matching_sequence_in_tree(close_sequence)
 
         print('found:', found)
 
@@ -125,17 +144,46 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
         self.assertEqual(found[1], sequence[1])
         self.assertEqual(found[2], sequence[2])
 
-    def test_no_match(self):
-        pass
-
-    def test_close_match(self):
-        pass
-
     def test_partial_sequence_match(self):
-        pass
+        sequence = [
+            Statement('Look at this cat!'),
+            Statement('Wow, that is a cool cat.'),
+            Statement('I know, right?')
+        ]
+        close_sequence = [
+            Statement('Look at this cat!'),
+            Statement('Where is it?')
+        ]
+        self.chatbot.train(statement.text for statement in sequence)
+
+        found = self.graph.find_closest_matching_sequence_in_tree(close_sequence)
+
+        print('found:', found)
+
+        self.assertEqual(len(found), len(sequence))
+        self.assertEqual(found[0], sequence[0])
+        self.assertEqual(found[1], sequence[1])
+        self.assertEqual(found[2], sequence[2])
 
     def test_partial_tree_match(self):
-        pass
+        sequence = [
+            Statement('Look at this cat!'),
+            Statement('Where is it?')
+        ]
+        close_sequence = [
+            Statement('Look at this cat!'),
+            Statement('Wow, that is a cool cat.'),
+            Statement('I know, right?')
+        ]
+        self.chatbot.train(statement.text for statement in sequence)
+
+        found = self.graph.find_closest_matching_sequence_in_tree(close_sequence)
+
+        print('found:', found)
+
+        self.assertEqual(len(found), len(sequence))
+        self.assertEqual(found[0], sequence[0])
+        self.assertEqual(found[1], sequence[1])
 
 
 class SequenceMatchingTestCase(ChatBotTestCase):
@@ -154,4 +202,14 @@ class SequenceMatchingTestCase(ChatBotTestCase):
         self.assertIn([1, 2, 3], subsets)
 
     def test_get_max_comparison(self):
-        pass
+        from chatterbot.utils.graphs import get_max_comparison
+        options = [
+            Statement('I like to watch the boats on the river.'),
+            Statement('Why are there boats on the river?'),
+            Statement('I like to sail my boat on the river.')
+        ]
+
+        statement = Statement('I like to watch the boats.')
+        confidence, result = get_max_comparison(statement, options)
+
+        self.assertEqual(result, options[0])
