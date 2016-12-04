@@ -1,7 +1,7 @@
-from .base_case import ChatBotTestCase
 from chatterbot.trainers import ListTrainer
 from chatterbot.conversation import Statement
-from chatterbot.utils.graphs import StatementGraph
+from chatterbot.graphs import StatementGraph
+from .base_case import ChatBotTestCase
 
 
 class GraphTestCase(ChatBotTestCase):
