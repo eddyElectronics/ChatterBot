@@ -38,6 +38,8 @@ class StatementGraph(object):
         The tuples in the list represent the top selection of most closely matching
         statements.
         """
+        from .comparisons import levenshtein_distance
+
         close_entries = []
         entries = {}
 
@@ -47,7 +49,7 @@ class StatementGraph(object):
                 if index not in entries:
                     entries[index] = []
 
-                closeness = statement.compare_to(known_statement)
+                closeness = levenshtein_distance(known_statement, statement)
                 entries[index].append((closeness, known_statement, ))
 
                 if len(entries[index]) > max_results:
@@ -129,11 +131,13 @@ def get_max_comparison(match_statement, statements):
     Given a statement and a list of statements, return the statement from
     the list that most closely matches the given statement.
     """
+    from .comparisons import levenshtein_distance
+
     max_value = -1
     max_statement = None
 
     for statement in statements:
-        value = match_statement.compare_to(statement)
+        value = levenshtein_distance(match_statement, statement)
 
         if value > max_value:
             max_value = value
