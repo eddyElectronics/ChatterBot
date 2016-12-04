@@ -189,7 +189,7 @@ class SubtreeMatchingTestCase(ChatBotTestCase):
 class SequenceMatchingTestCase(ChatBotTestCase):
 
     def test_get_all_ordered_subsets(self):
-        from chatterbot.utils.graphs import get_all_ordered_subsets
+        from chatterbot.graphs import get_all_ordered_subsets
 
         subsets = list(get_all_ordered_subsets([1, 2, 3]))
 
@@ -202,7 +202,7 @@ class SequenceMatchingTestCase(ChatBotTestCase):
         self.assertIn([1, 2, 3], subsets)
 
     def test_get_max_comparison(self):
-        from chatterbot.utils.graphs import get_max_comparison
+        from chatterbot.graphs import get_max_comparison
         options = [
             Statement('I like to watch the boats on the river.'),
             Statement('Why are there boats on the river?'),
