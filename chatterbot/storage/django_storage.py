@@ -1,6 +1,5 @@
 import json
 from chatterbot.storage import StorageAdapter
-from chatterbot.conversation import Statement, Response
 
 
 class DjangoStorageAdapter(StorageAdapter):
@@ -17,23 +16,6 @@ class DjangoStorageAdapter(StorageAdapter):
     def count(self):
         from chatterbot.ext.django_chatterbot.models import Statement as StatementModel
         return StatementModel.objects.count()
-
-    def model_to_object(self, statement_model):
-        """
-        Convert a Django model object into a ChatterBot Statement object.
-        """
-        statement = Statement(
-            statement_model.text,
-            extra_data=json.loads(statement_model.extra_data, encoding='utf8')
-        )
-
-        for response_object in statement_model.in_response.all():
-            statement.add_response(Response(
-                response_object.response.text,
-                occurrence=response_object.occurrence
-            ))
-
-        return statement
 
     def find(self, statement_text):
         from chatterbot.ext.django_chatterbot.models import Statement as StatementModel
@@ -70,14 +52,7 @@ class DjangoStorageAdapter(StorageAdapter):
             else:
                 kwargs['in_response'] = None
 
-        statement_objects = StatementModel.objects.filter(**kwargs)
-
-        results = []
-
-        for statement_object in statement_objects:
-            results.append(self.model_to_object(statement_object))
-
-        return results
+        return StatementModel.objects.filter(**kwargs)
 
     def update(self, statement, **kwargs):
         """
@@ -111,8 +86,7 @@ class DjangoStorageAdapter(StorageAdapter):
         Returns a random statement from the database
         """
         from chatterbot.ext.django_chatterbot.models import Statement as StatementModel
-        statement = StatementModel.objects.order_by('?').first()
-        return self.model_to_object(statement)
+        return StatementModel.objects.order_by('?').first()
 
     def remove(self, statement_text):
         """
