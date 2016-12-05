@@ -1,6 +1,8 @@
 from django.test import TestCase
 from chatterbot.storage import DjangoStorageAdapter
 from chatterbot.conversation import Statement, Response
+from chatterbot.ext.django_chatterbot.models import Statement as StatementModel
+from chatterbot.ext.django_chatterbot.models import Response as ResponseModel
 import os
 
 
@@ -168,7 +170,7 @@ class DjangoStorageAdapterTestCase(DjangoAdapterTestCase):
         self.adapter.remove(statement.text)
         results = self.adapter.filter(in_response_to__contains=text)
 
-        self.assertEqual(results, [])
+        self.assertEqual(results.count(), 0)
 
     def test_get_response_statements(self):
         """
@@ -237,9 +239,9 @@ class DjangoAdapterFilterTestCase(DjangoAdapterTestCase):
         self.adapter.update(statement2)
 
         results = self.adapter.filter(in_response_to=[])
-        self.assertEqual(len(results), 2)
-        self.assertIn(statement1, results)
-        self.assertIn(statement2, results)
+        self.assertEqual(results.count(), 2)
+        self.assertTrue(results.filter(text=statement1.text).exists())
+        self.assertTrue(results.filter(text=statement2.text).exists())
 
     def test_filter_contains_result(self):
         self.adapter.update(self.statement1)
@@ -248,8 +250,8 @@ class DjangoAdapterFilterTestCase(DjangoAdapterTestCase):
         results = self.adapter.filter(
             in_response_to__contains="Why are you counting?"
         )
-        self.assertEqual(len(results), 1)
-        self.assertIn(self.statement1, results)
+        self.assertEqual(results.count(), 1)
+        self.assertTrue(results.filter(text=self.statement1.text).exists())
 
     def test_filter_contains_no_result(self):
         self.adapter.update(self.statement1)
@@ -257,7 +259,7 @@ class DjangoAdapterFilterTestCase(DjangoAdapterTestCase):
         results = self.adapter.filter(
             in_response_to__contains="How do you do?"
         )
-        self.assertEqual(results, [])
+        self.assertEqual(results.count(), 0)
 
     def test_filter_multiple_parameters(self):
         self.adapter.update(self.statement1)
@@ -268,8 +270,8 @@ class DjangoAdapterFilterTestCase(DjangoAdapterTestCase):
             in_response_to__contains="Why are you counting?"
         )
 
-        self.assertEqual(len(results), 1)
-        self.assertIn(self.statement1, results)
+        self.assertEqual(results.count(), 1)
+        self.assertTrue(results.filter(text=self.statement1.text).exists())
 
     def test_filter_multiple_parameters_no_results(self):
         self.adapter.update(self.statement1)
@@ -330,7 +332,7 @@ class DjangoAdapterFilterTestCase(DjangoAdapterTestCase):
         found = self.adapter.filter(text=statement.text)
 
         self.assertEqual(len(found[0].in_response_to), 1)
-        self.assertEqual(type(found[0].in_response_to[0]), Response)
+        self.assertEqual(type(found[0].in_response_to[0]), ResponseModel)
 
 
 class ReadOnlyDjangoAdapterTestCase(DjangoAdapterTestCase):
