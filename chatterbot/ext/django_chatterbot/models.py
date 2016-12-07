@@ -25,10 +25,24 @@ class Statement(models.Model):
             return self.text
         return '<empty>'
 
+    def __init__(self, *args, **kwargs):
+        super(Statement, self).__init__(*args, **kwargs)
+
+        # Responses to be saved if the statement is updated with the storage adapter
+        self.response_statement_cache = []
+
     @property
     def in_response_to(self):
+        """
+        Return the response objects that are for this statement.
+        """
         return Response.objects.filter(statement=self)
 
+    def add_response(self, statement):
+        """
+        Add a response to this statement.
+        """
+        self.response_statement_cache.append(statement)
 
 class Response(models.Model):
     """
@@ -54,7 +68,7 @@ class Response(models.Model):
 
     unique_together = (('statement', 'response'),)
 
-    occurrence = models.PositiveIntegerField(default=0)
+    occurrence = models.PositiveIntegerField(default=1)
 
     objects = StatementManager()
 
