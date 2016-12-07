@@ -65,7 +65,7 @@ class DjangoStorageAdapter(StorageAdapter):
         # Do not alter the database unless writing is enabled
         if not self.read_only:
             statement, created = StatementModel.objects.get_or_create(text=statement.text)
-            statement.extra_data = statement.extra_data
+            statement.extra_data = getattr(statement, 'extra_data', '')
             statement.save()
 
             for _response_statement in response_statement_cache:
@@ -73,7 +73,7 @@ class DjangoStorageAdapter(StorageAdapter):
                 response_statement, created = StatementModel.objects.get_or_create(
                     text=_response_statement.text
                 )
-                response_statement.extra_data = _response_statement.extra_data
+                response_statement.extra_data = getattr(_response_statement, 'extra_data', '')
                 response_statement.save()
 
                 response, created = statement.in_response.get_or_create(
