@@ -1,5 +1,4 @@
 from django.db import models
-from .managers import StatementManager
 
 
 class Statement(models.Model):
@@ -15,8 +14,6 @@ class Statement(models.Model):
     )
 
     extra_data = models.CharField(max_length=500)
-
-    objects = StatementManager()
 
     def __str__(self):
         if len(self.text.strip()) > 60:
@@ -69,8 +66,6 @@ class Response(models.Model):
     unique_together = (('statement', 'response'),)
 
     occurrence = models.PositiveIntegerField(default=1)
-
-    objects = StatementManager()
 
     def __str__(self):
         return '{} => {}'.format(
